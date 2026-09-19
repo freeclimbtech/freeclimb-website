@@ -1,8 +1,6 @@
 /* ============================================================
    Freeclimb — minimal single-page site
    - hero particle field (canvas, mouse-reactive)
-   - drag / button carousel
-   - portfolio lightbox
    (the logo's wipe-up animation is pure CSS - see styles.css)
    ============================================================ */
 
@@ -184,151 +182,10 @@
     requestAnimationFrame(tick);
   }
 
-  /* ---------------- Carousel ---------------- */
-
-  function initCarousel() {
-    var track = document.querySelector(".carousel__track");
-    if (!track) return;
-
-    var prev = document.querySelector(".carousel__nav--prev");
-    var next = document.querySelector(".carousel__nav--next");
-    var items = Array.prototype.slice.call(track.querySelectorAll(".work-item"));
-
-    /* mark the card nearest the track centre so it renders slightly larger */
-    function updateActive() {
-      var mid = track.getBoundingClientRect().left + track.clientWidth / 2;
-      var best = null;
-      var bestDist = Infinity;
-      items.forEach(function (it) {
-        var r = it.getBoundingClientRect();
-        var d = Math.abs(r.left + r.width / 2 - mid);
-        if (d < bestDist) { bestDist = d; best = it; }
-      });
-      var activeIdx = items.indexOf(best);
-      items.forEach(function (it, idx) {
-        it.classList.toggle("is-active", it === best);
-        it.classList.toggle("is-near", Math.abs(idx - activeIdx) === 1);
-      });
-    }
-
-    function centerItem(it, smooth) {
-      if (!it) return;
-      var tr = track.getBoundingClientRect();
-      var ir = it.getBoundingClientRect();
-      var delta = ir.left + ir.width / 2 - (tr.left + tr.width / 2);
-      track.scrollBy({ left: delta, behavior: smooth && !reduceMotion ? "smooth" : "auto" });
-    }
-
-    function nudge(dir) {
-      var active = track.querySelector(".work-item.is-active") || items[0];
-      var idx = items.indexOf(active);
-      centerItem(items[Math.max(0, Math.min(items.length - 1, idx + dir))], true);
-    }
-
-    /* Delegate from the carousel container rather than binding the prev/next
-       buttons directly - more robust against the buttons being anything
-       other than the exact element a direct binding captured. */
-    var carousel = track.closest(".carousel") || track.parentElement;
-    if (carousel) {
-      carousel.addEventListener("click", function (e) {
-        if (prev && (e.target === prev || prev.contains(e.target))) { nudge(-1); return; }
-        if (next && (e.target === next || next.contains(e.target))) { nudge(1); return; }
-      });
-    }
-
-    var ticking = false;
-    track.addEventListener("scroll", function () {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(function () { updateActive(); ticking = false; });
-    });
-    window.addEventListener("resize", updateActive);
-
-    /* start with the third card centred */
-    centerItem(items[2], false);
-    updateActive();
-
-    /* pointer drag-to-scroll */
-    var dragging = false;
-    var moved = false;
-    var startX = 0;
-    var startScroll = 0;
-
-    track.addEventListener("pointerdown", function (e) {
-      if (e.button !== 0) return;
-      dragging = true;
-      moved = false;
-      startX = e.clientX;
-      startScroll = track.scrollLeft;
-    });
-
-    track.addEventListener("pointermove", function (e) {
-      if (!dragging) return;
-      var dx = e.clientX - startX;
-      if (Math.abs(dx) > 4) {
-        moved = true;
-        if (track.setPointerCapture) {
-          try { track.setPointerCapture(e.pointerId); } catch (err) {}
-        }
-      }
-      track.scrollLeft = startScroll - dx;
-    });
-
-    function endDrag() { dragging = false; }
-    track.addEventListener("pointerup", endDrag);
-    track.addEventListener("pointercancel", endDrag);
-    track.addEventListener("pointerleave", endDrag);
-
-    /* swallow the click that ends a drag so it doesn't open the lightbox */
-    track.addEventListener(
-      "click",
-      function (e) {
-        if (moved) {
-          e.preventDefault();
-          e.stopPropagation();
-          moved = false;
-        }
-      },
-      true
-    );
-  }
-
-  /* ---------------- Lightbox ---------------- */
-
-  function initLightbox() {
-    var dialog = document.getElementById("lightbox");
-    if (!dialog || typeof dialog.showModal !== "function") return;
-
-    var num = dialog.querySelector(".lightbox__num");
-    var title = dialog.querySelector(".lightbox__title");
-    var meta = dialog.querySelector(".lightbox__meta");
-    var items = document.querySelectorAll(".work-item");
-
-    items.forEach(function (btn, i) {
-      btn.addEventListener("click", function () {
-        num.textContent = ("0" + (i + 1)).slice(-2);
-        title.textContent = btn.getAttribute("data-title") || "Project";
-        meta.textContent = btn.getAttribute("data-meta") || "";
-        dialog.showModal();
-      });
-    });
-
-    /* click outside the dialog box closes it */
-    dialog.addEventListener("click", function (e) {
-      var r = dialog.getBoundingClientRect();
-      var inside =
-        e.clientX >= r.left && e.clientX <= r.right &&
-        e.clientY >= r.top && e.clientY <= r.bottom;
-      if (!inside) dialog.close();
-    });
-  }
-
   /* ---------------- Boot ---------------- */
 
   function init() {
     initHeroCanvas();
-    initCarousel();
-    initLightbox();
   }
 
   if (document.readyState === "loading") {

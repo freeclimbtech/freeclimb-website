@@ -1,0 +1,4 @@
+/* Tailwind theme + utilities only. Preflight (Tailwind's global reset) is
+   deliberately left out so it can't override the site's own css/styles.css. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
